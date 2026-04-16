@@ -29,8 +29,8 @@ pipeline {
 
     stage('Package') {
       agent {
-        dockerfile {
-          filename 'maven:3.9.9-eclipse-temurin-17-alpine'
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-17-alpine'
         }
 
       }
