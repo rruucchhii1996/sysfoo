@@ -1,13 +1,13 @@
 pipeline {
-  agent any
-  
-  // FIX 1: The 'tools' block MUST be placed BEFORE the 'stages' block.
-  tools {
-    maven 'maven 3.9.12' // Ensure this exactly matches the case/spelling in Global Tool Configuration
-  }
-  
+  agent none
   stages {
     stage('Build') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-17-alpine'
+        }
+
+      }
       steps {
         echo 'Compiling sysfoo app..'
         sh 'mvn compile'
@@ -15,6 +15,12 @@ pipeline {
     }
 
     stage('Test') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-17-alpine'
+        }
+
+      }
       steps {
         echo 'Running Unit Testing..'
         sh 'mvn clean test'
@@ -22,27 +28,31 @@ pipeline {
     }
 
     stage('Package') {
+      agent {
+        dockerfile {
+          filename 'maven:3.9.9-eclipse-temurin-17-alpine'
+        }
+
+      }
       steps {
         echo 'Creating package for the app....'
-        
-        // FIX 2: Added #!/bin/bash shebang to the top of the multi-line shell script 
-        // to ensure it correctly processes variables like $(echo...)
         sh '''#!/bin/bash
 GIT_SHORT_COMMIT=$(echo $GIT_COMMIT | cut -c 1-7)
 mvn versions:set -DnewVersion="$GIT_SHORT_COMMIT"
 mvn versions:commit'''
-        
         sh 'mvn package -DskipTests'
-        
-        // FIX 3: Added the explicit "artifacts:" parameter name which is required in Declarative
-        archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
+        archiveArtifacts(artifacts: '**/target/*.jar', allowEmptyArchive: true)
       }
     }
+
   }
-  
+  tools {
+    maven 'maven 3.9.12'
+  }
   post {
     always {
       echo 'This pipeline is completed..'
     }
+
   }
 }
